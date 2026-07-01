@@ -1,0 +1,39 @@
+name: daily-scrape
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # 毎日 UTC 0:00 = JST 9:00
+  workflow_dispatch: {}   # 手動実行用ボタンも有効化
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install
+
+      - name: Install dependencies
+        run: uv sync --locked
+
+      - name: Install Playwright browser
+        run: uv run playwright install --with-deps chromium
+
+      - name: Restore credentials.json
+        run: echo "${{ secrets.GOOGLE_CREDENTIALS_JSON }}" | base64 -d > credentials.json
+
+      - name: Run scraper
+        env:
+          SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID }}
+          DRIVE_FOLDER_ID: ${{ secrets.DRIVE_FOLDER_ID }}
+        run: uv run python scrape.py
+
+      - name: Cleanup
+        if: always()
+        run: rm -f credentials.json

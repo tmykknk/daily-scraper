@@ -1,0 +1,9 @@
+credentials.json
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.png
+*.webp
+.env
+.uv-cache/

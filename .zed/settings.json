@@ -1,0 +1,25 @@
+{
+  "lsp": {
+    "ruff": {
+      "initialization_options": {
+        "settings": {
+          // Ruff server settings go here
+          "lineLength": 80,
+          "lint": {
+            "extendSelect": ["I"],
+          },
+        },
+      },
+    },
+  },
+  "languages": {
+    "Python": {
+      "code_actions_on_format": {
+        // Organize imports
+        "source.organizeImports.ruff": true,
+        // Fix all auto-fixable lint violations
+        "source.fixAll.ruff": true,
+      },
+    },
+  },
+}
