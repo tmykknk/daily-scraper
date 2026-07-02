@@ -105,6 +105,8 @@ uv run python scrape.py
 ### 取得ロジック
 現在の `scrape.py` は固定の `TODO_*` セレクタではなく、商品リンク
 `a[href*='item.rakuten.co.jp']` を起点に、近い親要素から商品名・価格・URLを抽出します。
+商品URLはクエリパラメータとハッシュを削除して記録します。
+取得日時はスプレッドシートで扱いやすい `YYYY-MM-DD HH:MM:SS` 形式で記録します。
 TOP10スクショは、抽出した10商品の表示範囲を合成した `clip` で撮影します。
 
 楽天ランキングページは素の Playwright headless だと `403` を返すことがあります。

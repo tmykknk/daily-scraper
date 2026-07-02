@@ -50,7 +50,7 @@ def required_env(name: str) -> str:
 
 RANKING_URL = "https://ranking.rakuten.co.jp/daily/558885/"  # 靴ジャンル デイリー
 TOP_N = 10
-VIEWPORT = ViewportSize(width=1600, height=1024)
+VIEWPORT = ViewportSize(width=1600, height=2400)
 BROWSER_CHANNEL = os.environ.get("SCRAPER_BROWSER_CHANNEL", "chrome")
 HEADLESS = os.environ.get("SCRAPER_HEADLESS", "true").lower() in {
     "1",
@@ -135,7 +135,7 @@ def browser_launch_options() -> dict:
     options = {
         "headless": HEADLESS,
         "args": [
-            "--window-size=1600,1024",
+            "--window-size=1600,2400",
             "--disable-gpu",
             "--no-sandbox",
             "--disable-dev-shm-usage",
@@ -199,6 +199,13 @@ def scrape_top10():
               const normalizeText = (text) =>
                 (text || "").replace(/\s+/g, " ").trim();
 
+              const cleanProductUrl = (href) => {
+                const url = new URL(href);
+                url.search = "";
+                url.hash = "";
+                return url.toString();
+              };
+
               const productName = (link) => {
                 const text = normalizeText(link.innerText);
                 if (text) return text;
@@ -239,7 +246,7 @@ def scrape_top10():
               for (const link of document.querySelectorAll(
                 "a[href*='item.rakuten.co.jp']"
               )) {
-                const url = link.href;
+                const url = cleanProductUrl(link.href);
                 if (!itemUrlPattern.test(url) || seenUrls.has(url)) continue;
 
                 const name = productName(link);
@@ -295,7 +302,7 @@ def scrape_top10():
                 TOP_N,
             )
 
-            page.screenshot(path=tmp_png, clip=result["clip"])
+            page.screenshot(path=tmp_png, clip=result["clip"], full_page=True)
             products = result["products"]
         finally:
             browser.close()
@@ -393,7 +400,7 @@ def main():
 
         rows = [
             [
-                now.isoformat(),
+                now.strftime("%Y-%m-%d %H:%M:%S"),
                 p["rank"],
                 p["name"],
                 p["price"],
