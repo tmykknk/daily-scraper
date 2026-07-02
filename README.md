@@ -1,10 +1,15 @@
-# 楽天デイリーランキング TOP10 自動記録
+# What
 
-楽天市場のデイリーランキング TOP10 を毎日自動取得し、
+楽天市場のデイリーランキング TOP10 を毎日自動取得し
 - 商品名・価格・URL・順位をGoogleスプレッドシートに追記
 - TOP10エリアのスクショ(WebP)をGoogleスプレッドシートと同じディレクトリのGoogle Driveフォルダに保存
 
-する、GitHub Actions上で毎日1回動くポートフォリオ用サンプルです。
+するスクレイピングやつです。
+
+# Why
+
+仕事で楽天などのランキング情報を定期取得するニーズがあったため、ポートフォリオとしてそれっぽいものを作ってみました。
+Python での自動化やスクレイピングは Google Colab や Selenium で実装してきましたが、今回は Playwright でやってみました。
 
 ---
 
@@ -178,9 +183,11 @@ base64 -i credentials.json | tr -d '\n'
 ```
 daily-scraper/
 ├── scrape.py                          # メインスクリプト
+├── generate_token.py                  # OAuth token.json 生成スクリプト
 ├── pyproject.toml                     # 依存パッケージ定義(uv)
 ├── uv.lock                            # ロックファイル(uv)
 ├── pyrightconfig.json                 # Pyright型診断設定
+├── .env.sample                        # ローカル環境変数サンプル
 ├── .zed/settings.json                 # Zed保存時整形/言語サーバ設定
 ├── .agents/skills/daily-scraper/      # Codex用プロジェクトスキル
 ├── .gitignore

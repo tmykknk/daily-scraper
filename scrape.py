@@ -50,9 +50,7 @@ def required_env(name: str) -> str:
     return value
 
 
-RANKING_URL = (
-    "https://ranking.rakuten.co.jp/daily/558885/"  # 靴ジャンル デイリー
-)
+RANKING_URL = "https://ranking.rakuten.co.jp/daily/558885/"  # 靴ジャンル デイリー
 TOP_N = 10
 VIEWPORT = ViewportSize(width=1600, height=2400)
 BROWSER_CHANNEL = os.environ.get("SCRAPER_BROWSER_CHANNEL", "chrome")
@@ -101,9 +99,7 @@ def load_google_credentials() -> Credentials:
             OAUTH_TOKEN_PATH, scopes=SCOPES
         )
 
-    raise RuntimeError(
-        "GOOGLE_AUTH_MODE must be either 'service_account' or 'oauth'."
-    )
+    raise RuntimeError("GOOGLE_AUTH_MODE must be either 'service_account' or 'oauth'.")
 
 
 # ---- スクレイピング -----------------------------------------------------
@@ -192,9 +188,7 @@ def scrape_top10():
                 status = response.status if response else "no response"
                 raise RuntimeError(f"failed to load ranking page: {status}")
 
-            page.wait_for_selector(
-                "a[href*='item.rakuten.co.jp']", timeout=30000
-            )
+            page.wait_for_selector("a[href*='item.rakuten.co.jp']", timeout=30000)
 
             result = page.evaluate(
                 r"""
