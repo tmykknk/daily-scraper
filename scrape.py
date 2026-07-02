@@ -26,7 +26,9 @@ from datetime import datetime, timedelta, timezone
 from dotenv import load_dotenv
 from google.auth.credentials import Credentials
 from google.oauth2.credentials import Credentials as OAuthCredentials
-from google.oauth2.service_account import Credentials as ServiceAccountCredentials
+from google.oauth2.service_account import (
+    Credentials as ServiceAccountCredentials,
+)
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from googleapiclient.http import MediaFileUpload
@@ -48,7 +50,9 @@ def required_env(name: str) -> str:
     return value
 
 
-RANKING_URL = "https://ranking.rakuten.co.jp/daily/558885/"  # 靴ジャンル デイリー
+RANKING_URL = (
+    "https://ranking.rakuten.co.jp/daily/558885/"  # 靴ジャンル デイリー
+)
 TOP_N = 10
 VIEWPORT = ViewportSize(width=1600, height=2400)
 BROWSER_CHANNEL = os.environ.get("SCRAPER_BROWSER_CHANNEL", "chrome")
@@ -97,7 +101,9 @@ def load_google_credentials() -> Credentials:
             OAUTH_TOKEN_PATH, scopes=SCOPES
         )
 
-    raise RuntimeError("GOOGLE_AUTH_MODE must be either 'service_account' or 'oauth'.")
+    raise RuntimeError(
+        "GOOGLE_AUTH_MODE must be either 'service_account' or 'oauth'."
+    )
 
 
 # ---- スクレイピング -----------------------------------------------------
@@ -186,7 +192,9 @@ def scrape_top10():
                 status = response.status if response else "no response"
                 raise RuntimeError(f"failed to load ranking page: {status}")
 
-            page.wait_for_selector("a[href*='item.rakuten.co.jp']", timeout=30000)
+            page.wait_for_selector(
+                "a[href*='item.rakuten.co.jp']", timeout=30000
+            )
 
             result = page.evaluate(
                 r"""
@@ -411,7 +419,7 @@ def main():
         ]
         write_to_sheet(creds, rows)
 
-        print(f"done: {len(rows)} rows written, screenshot: {screenshot_url}")
+        print("Done. Recorded result and uploaded screenshot.")
     finally:
         if webp_path and os.path.exists(webp_path):
             os.remove(webp_path)
