@@ -6,6 +6,8 @@
 
 するスクレイピングやつです。
 
+[sample.webm](https://github.com/user-attachments/assets/0e262b00-5d6c-430d-8074-a64c83979e72)
+
 # Why
 
 仕事で楽天などのランキング情報を定期取得するニーズがあったため、ポートフォリオとしてそれっぽいものを作ってみました。
