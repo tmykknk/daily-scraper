@@ -1,0 +1,9 @@
+{
+  "include": ["*.py"],
+  "exclude": ["**/__pycache__", ".venv"],
+  "venvPath": ".",
+  "venv": ".venv",
+  "typeCheckingMode": "standard",
+  "reportPrivateImportUsage": "error",
+  "reportArgumentType": "error"
+}

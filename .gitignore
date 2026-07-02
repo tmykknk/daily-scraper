@@ -1,4 +1,7 @@
 credentials.json
+oauth_client.json
+token.json
+
 __pycache__/
 *.pyc
 .venv/

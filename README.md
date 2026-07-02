@@ -33,6 +33,48 @@
 3. スプレッドシートとDriveフォルダの両方を、手順1-2でメモした `client_email` に対して
    「編集者」権限で共有(サービスアカウントは自分のGoogleアカウントとは別のGoogleアカウント扱いなので、必ず共有操作が必要)
 
+
+### 1-4. マイドライブへ保存する場合のOAuth設定
+
+サービスアカウントはマイドライブ上のフォルダに対して編集者権限を持っていても、
+サービスアカウント自身にDriveストレージ容量がないため、ファイル作成時に
+`storageQuotaExceeded` で失敗します。個人Googleアカウントのマイドライブへ保存する場合は、
+ユーザーOAuth認証を使ってください。
+
+1. Google Cloud ConsoleでOAuth同意画面を設定
+2. 「認証情報」→「認証情報を作成」→「OAuth クライアント ID」→「デスクトップアプリ」を作成
+3. ダウンロードしたJSONを `oauth_client.json` としてローカルに保存(**Gitにはコミットしない**)
+4. 以下で `token.json` を生成
+
+```bash
+uv run python generate_token.py
+```
+
+Googleの認証画面でアクセスエラーになる場合は、以下を確認してください。
+
+- OAuthクライアントIDの種類が「デスクトップアプリ」になっているか
+- OAuth同意画面が「テスト」の場合、`generate_token.py` でログインするGoogleアカウントを
+  OAuth同意画面の「テストユーザー」に追加しているか
+- 個人利用で自分のGoogleアカウントだけ使う場合、アプリを外部公開する必要はありません。
+  「テスト」状態のまま、使うアカウントをテストユーザーに追加すれば認証できます。
+- WebアプリのOAuthクライアントを使う場合、承認済みリダイレクトURIに `http://localhost:8080/` を追加しているか
+
+5. `.env` に以下を設定
+
+```bash
+# マイドライブへ保存する場合はコメントアウトせず oauth のまま使う
+GOOGLE_AUTH_MODE=oauth
+GOOGLE_OAUTH_TOKEN_PATH=token.json
+```
+
+`GOOGLE_AUTH_MODE=oauth` は、マイドライブへ保存する場合は必須です。
+コメントアウトするとデフォルトの `service_account` 扱いになり、マイドライブへのアップロードは
+`storageQuotaExceeded` で失敗します。共有ドライブ + サービスアカウントで運用する場合だけ
+`GOOGLE_AUTH_MODE=service_account` に変更してください。
+
+GitHub ActionsでOAuthを使う場合は、`token.json` の中身をGitHub Secretsの
+`GOOGLE_OAUTH_TOKEN_JSON` に登録します。このSecretがある場合、ワークフローはOAuthを使います。
+
 ---
 
 ## 2. ローカルでの動作確認
@@ -40,37 +82,64 @@
 [uv](https://docs.astral.sh/uv/)がインストールされている前提です(未導入の場合は `curl -LsSf https://astral.sh/uv/install.sh | sh`)。
 
 ```bash
-cd rakuten-shoes-ranking
+cd daily-scraper
 
 uv sync                      # pyproject.toml / uv.lock から依存関係を解決してインストール
 source .venv/bin/activate    # 仮想環境をアクティベート
 
-uv run playwright install chromium
+uv run playwright install chrome
 
+# export で指定するか、同じ内容を .env に書いてください
 export SPREADSHEET_ID="スプレッドシートのID"
 export DRIVE_FOLDER_ID="DriveフォルダのID"
+export SCRAPER_BROWSER_CHANNEL="chrome"  # 通常Chromeを使う
+export SCRAPER_HEADLESS="true"           # 動的UAとwebdriver無効化でheadless実行
 
 uv run python scrape.py
 ```
 
 依存パッケージを追加・変更したいときは `uv add パッケージ名` / `uv remove パッケージ名` を使うと
 `pyproject.toml` と `uv.lock` が自動で更新されます。
+ローカル実行時は `python-dotenv` により、プロジェクトルートの `.env` も自動で読み込まれます。
 
-### セレクタの調査
-`scrape.py` 内の以下の `TODO_...` 部分は、実際のページのDOM構造を見て埋めてください。
-ブラウザの開発者ツール(検証)で楽天ランキングページを開き、TOP10を囲む親要素・商品1件ごとの要素・
-商品名/価格/リンクの要素をそれぞれ特定します。
+### 取得ロジック
+現在の `scrape.py` は固定の `TODO_*` セレクタではなく、商品リンク
+`a[href*='item.rakuten.co.jp']` を起点に、近い親要素から商品名・価格・URLを抽出します。
+TOP10スクショは、抽出した10商品の表示範囲を合成した `clip` で撮影します。
 
-```python
-area_selector = "TODO_TOP10_AREA_SELECTOR"   # TOP10全体を囲む要素
-item_selector = "TODO_ITEM_SELECTOR"         # 商品1件ごとの要素
-name = item.locator("TODO_NAME_SELECTOR")    # 商品名
-price = item.locator("TODO_PRICE_SELECTOR")  # 価格
-url = item.locator("TODO_LINK_SELECTOR")     # 商品リンク(href属性)
+楽天ランキングページは素の Playwright headless だと `403` を返すことがあります。
+このため、`scrape.py` では通常ChromeのメジャーバージョンからUser-Agentを動的に作り、
+`navigator.webdriver` を無効化し、広告・計測系URLを遮断して headless 実行します。
+`SCRAPER_BROWSER_CHANNEL=chrome` を指定すると、Playwright同梱ChromiumではなくOSに入っている
+通常Chromeを使います。
+
+DOM抽出だけを副作用なしで確認する場合は、以下を実行します。
+
+```bash
+SCRAPER_BROWSER_CHANNEL=chrome SCRAPER_HEADLESS=true \
+  uv run python - <<'PY'
+import scrape
+
+_, products = scrape.scrape_top10()
+for product in products:
+    print(product["rank"], product["price"], product["url"])
+PY
 ```
 
 実行後、スプレッドシートに10行追記され、Driveフォルダに `YYMMDD.webp` が
 保存されていれば成功です。
+
+### 開発時チェック
+型診断と整形/リントは `pyright` と `ruff` で確認します。
+
+```bash
+uv run pyright
+uv run ruff check .
+uv run ruff format --check .
+```
+
+Zedでは `.zed/settings.json` により、Python保存時に Ruff formatter と Ruff code actions
+(import整理・自動修正)が実行される設定です。型診断は `pyrightconfig.json` の設定で行います。
 
 ---
 
@@ -81,7 +150,8 @@ GitHubリポジトリの「Settings」→「Secrets and variables」→「Action
 
 | Secret名 | 値 |
 |---|---|
-| `GOOGLE_CREDENTIALS_JSON` | `credentials.json` の中身をbase64エンコードした文字列 |
+| `GOOGLE_CREDENTIALS_JSON` | サービスアカウントを使う場合のみ。`credentials.json` の中身をbase64エンコードした文字列 |
+| `GOOGLE_OAUTH_TOKEN_JSON` | マイドライブへ保存する場合。`token.json` の中身 |
 | `SPREADSHEET_ID` | スプレッドシートID |
 | `DRIVE_FOLDER_ID` | DriveフォルダID |
 
@@ -96,17 +166,21 @@ base64 -i credentials.json | tr -d '\n'
 1. リポジトリをGitHubにpush(`credentials.json` は `.gitignore` 済みなので含まれません)
 2. 「Actions」タブ →「daily-scrape」ワークフローを選択 →「Run workflow」で手動実行
 3. 成功すればスプレッドシートに行が追記され、Driveにスクショが保存される
-4. 以降は毎日 JST 9:00 に自動実行されます(`cron: '0 0 * * *'`)
+4. ワークフローでは通常Chromeを headless で起動します
+5. 以降は毎日 JST 9:00 に自動実行されます(`cron: '0 0 * * *'`)
 
 ---
 
 ## ファイル構成
 
 ```
-rakuten-shoes-ranking/
+daily-scraper/
 ├── scrape.py                          # メインスクリプト
 ├── pyproject.toml                     # 依存パッケージ定義(uv)
 ├── uv.lock                            # ロックファイル(uv)
+├── pyrightconfig.json                 # Pyright型診断設定
+├── .zed/settings.json                 # Zed保存時整形/言語サーバ設定
+├── .agents/skills/daily-scraper/      # Codex用プロジェクトスキル
 ├── .gitignore
 ├── .github/workflows/daily-scrape.yml # 定期実行ワークフロー
 └── README.md

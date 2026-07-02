@@ -14,6 +14,13 @@
   },
   "languages": {
     "Python": {
+      "language_servers": ["basedpyright", "ruff", "..."],
+      "format_on_save": "on",
+      "formatter": {
+        "language_server": {
+          "name": "ruff",
+        },
+      },
       "code_actions_on_format": {
         // Organize imports
         "source.organizeImports.ruff": true,
