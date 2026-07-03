@@ -152,7 +152,7 @@ Zedでは `.zed/settings.json` により、Python保存時に Ruff formatter と
 
 ---
 
-## 3. GitHub Actions での定期実行設定
+## 3. GitHub Actions / GAS での実行設定
 
 ### 3-1. リポジトリのSecrets登録
 GitHubリポジトリの「Settings」→「Secrets and variables」→「Actions」で以下を登録:
@@ -176,7 +176,27 @@ base64 -i credentials.json | tr -d '\n'
 2. 「Actions」タブ →「daily-scrape」ワークフローを選択 →「Run workflow」で手動実行
 3. 成功すればスプレッドシートに行が追記され、Driveにスクショが保存される
 4. ワークフローでは通常Chromeを headless で起動します
-5. 以降は毎日 JST 9:00 に自動実行されます(`cron: '0 0 * * *'`)
+
+### 3-3. GASから定期実行する
+
+GitHub Actionsの `schedule` はタイムゾーン指定に対応していないため、このワークフローは
+`workflow_dispatch` のみにしています。毎日決まった時刻に実行したい場合は、
+`gas/trigger_workflow_dispatch.gs` をGoogle Apps Scriptに配置し、GASの時間主導トリガーから
+GitHub Actionsの `workflow_dispatch` APIを呼び出します。
+
+GASの Script Properties に以下を設定します。
+
+| Property | 値 |
+|---|---|
+| `GITHUB_TOKEN` | GitHub Personal Access Token |
+| `GITHUB_OWNER` | リポジトリ owner/user/org 名 |
+| `GITHUB_REPO` | リポジトリ名 |
+| `GITHUB_WORKFLOW_ID` | `daily-scrape.yml` |
+| `GITHUB_REF` | 実行するbranch。例: `main` |
+
+設定後、GASで `createDailyTrigger()` を1回実行すると、毎日 JST 9時ごろに
+`triggerDailyScrapeWorkflow()` が実行されます。手動テストは `triggerDailyScrapeWorkflow()` を
+直接実行してください。
 
 ---
 
@@ -193,7 +213,8 @@ daily-scraper/
 ├── .zed/settings.json                 # Zed保存時整形/言語サーバ設定
 ├── .agents/skills/daily-scraper/      # Codex用プロジェクトスキル
 ├── .gitignore
-├── .github/workflows/daily-scrape.yml # 定期実行ワークフロー
+├── .github/workflows/daily-scrape.yml # 手動実行可能なGitHub Actions workflow
+├── gas/trigger_workflow_dispatch.gs   # GASからworkflow_dispatchを実行するコード
 └── README.md
 ```
 

@@ -1,9 +1,7 @@
 name: daily-scrape
 
 on:
-  schedule:
-    - cron: '0 0 * * *'  # 毎日 UTC 0:00 = JST 9:00
-  workflow_dispatch: {}   # 手動実行用ボタンも有効化
+  workflow_dispatch: {} # GASまたは手動実行用
 
 jobs:
   scrape:
